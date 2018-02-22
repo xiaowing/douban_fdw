@@ -1,0 +1,5 @@
+# douban_fdw extension
+comment = 'foreign-data wrapper for douban public API'
+default_version = '1.0'
+module_pathname = '$libdir/douban_fdw'
+relocatable = true
