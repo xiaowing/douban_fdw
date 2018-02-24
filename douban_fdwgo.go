@@ -384,6 +384,11 @@ func doubanBeginForeignScan(node *C.ForeignScanState,
 		return // ereport will cause the statement jumped out of the execution.
 	}
 
+	if (len(items) < MovieRankingTop250Num) {
+		//TODO: change info into warning
+		info("%d items expected from Douban.com, but only %d returned actually", MovieRankingTop250Num, len(items))
+	}
+
 	// get the fdw's private field from the ForeignScan
 	pstate := (*C.PlanState)(unsafe.Pointer(&(sstate.ps)))
 	fsplan := (*C.ForeignScan)(unsafe.Pointer(pstate.plan))
@@ -411,13 +416,7 @@ func doubanBeginForeignScan(node *C.ForeignScanState,
 
 //export doubanIterateForeignScan
 func doubanIterateForeignScan(node *C.ForeignScanState) *C.TupleTableSlot {
-	/* 
-	var rel *C.RelationData
-	var attinmeta *C.AttInMetadata
-	var natts int
-	var tuple *C.HeapTupleData
-	*/
-
+	iterateMax := MovieRankingTop250Num
 	sstate := (*C.ScanState)(unsafe.Pointer(&(node.ss)))
 	slot := (*C.TupleTableSlot)(unsafe.Pointer(sstate.ss_ScanTupleSlot))
 	tupDesc := (C.TupleDesc)(unsafe.Pointer(slot.tts_tupleDescriptor))
@@ -431,9 +430,13 @@ func doubanIterateForeignScan(node *C.ForeignScanState) *C.TupleTableSlot {
 			unsafe.Pointer(node.fdw_state))
 	}
 
-	if dbstate.currentRow < 0 || dbstate.currentRow > MovieRankingTop250Num {
-		ereport(ERRCODE_FDW_ERROR, "internal error: invalid value of \"DoubanScanState.currentRow\"(%d)", 
-			dbstate.currentRow)
+	if len(dbstate.resultSet) < iterateMax {
+		iterateMax = len(dbstate.resultSet)
+	}
+
+	if dbstate.currentRow < 0 || dbstate.currentRow > iterateMax {
+		ereport(ERRCODE_FDW_ERROR, "internal error: \"DoubanScanState.currentRow\" %d beyond the upper value %d", 
+			dbstate.currentRow, iterateMax)
 	}
 
 	natts := int(tupDesc.natts)
@@ -446,15 +449,10 @@ func doubanIterateForeignScan(node *C.ForeignScanState) *C.TupleTableSlot {
 	 * TODO: if the limit clause pushdown were implemented, the following if-condition
 	*        should be modified  
 	 */
-	if dbstate.currentRow == MovieRankingTop250Num {
+	if dbstate.currentRow == iterateMax {
 		return slot
 	}
 
-	/* TODO: the following is needed to be done
-	tuple = (*C.HeapTupleData)(unsafe.Pointer(C.BuildTupleFromCStrings(attinmeta,
-		(**_Ctype_char)(unsafe.Pointer(&values[0])))))
-	C.ExecStoreTuple(tuple, slot, 0, C.bool(1))
-	*/
 	datumsSlice := (*[1 << 30]C.Datum)(unsafe.Pointer(slot.tts_values))[:natts:natts]
 	isnullsSlice := (*[1 << 30]C.bool)(unsafe.Pointer(slot.tts_isnull))[:natts:natts]
 	for _, val := range dbstate.attrsRetrieved {
@@ -471,11 +469,13 @@ func doubanIterateForeignScan(node *C.ForeignScanState) *C.TupleTableSlot {
 func doubanEndForeignScan(node *C.ForeignScanState) {
 	/* Nothing to do for the simple fdw */
 	Unref(unsafe.Pointer(node.fdw_state))
+	node.fdw_state = nil
 }
 
 //export doubanReScanForeignScan
 func doubanReScanForeignScan(node *C.ForeignScanState) {
 	/* Nothing to do for the simple fdw */
+	ereport(ERRCODE_FDW_ERROR, "rescan of foreign scan is not supported yet")
 }
 
 //export doubanExplainForeignScan

@@ -63,6 +63,10 @@ func (self *MovieItem) GetGenres() string {
 	var buffer bytes.Buffer
 	strLen := 0
 
+	if self.Genres == nil {
+		return ""
+	}
+
 	for _, val := range self.Genres {
 		l, _ := buffer.WriteString(val)
 		buffer.WriteString(",")
@@ -74,10 +78,18 @@ func (self *MovieItem) GetGenres() string {
 }
 
 func (self *MovieItem) GetCasts() string {
+	if self.Casts == nil {
+		return ""
+	}
+	
 	return getStarrings(self.Casts)
 }
 
 func (self *MovieItem) GetDirectors() string {
+	if self.Directors == nil {
+		return ""
+	}
+
 	return getStarrings(self.Directors)
 }
 
@@ -90,9 +102,12 @@ func getStarrings(artists []Artist) string {
 		buffer.WriteString(",")
 		strLen += l + 1
 	}
-	buffer.Truncate(strLen - 1)
-
-	return buffer.String()
+	if strLen == 0 {
+		return ""
+	} else {
+		buffer.Truncate(strLen - 1)
+		return buffer.String()
+	}
 }
 
 type MovieRanking250 struct {
