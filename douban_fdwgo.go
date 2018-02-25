@@ -313,8 +313,6 @@ func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset, 
 
 			retval = append(retval, meta)
 		}
-
-		//attrUsed = C.lappend_int(attrUsed, C.int(i))
 	}
 
 	return retval
@@ -323,10 +321,12 @@ func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset, 
 //export doubanGetForeignPaths
 func doubanGetForeignPaths(root *C.PlannerInfo,
 	baserel *C.RelOptInfo, foreigntableid C.Oid) {
-
 	//TODO: improve the algorithm of cost estimate.
+	startupCost := C.Cost(40.0)
+	totalCost := C.Cost(40.0 + baserel.rows)
+
 	path := (*C.Path)(unsafe.Pointer(C.create_foreignscan_path(root, baserel,
-		baserel.rows, C.Cost(500), C.Cost(500+baserel.rows), (*C.List)(nil),
+		baserel.rows, startupCost, totalCost, (*C.List)(nil),
 		nil, nil, (*C.List)(nil))))
 	C.add_path(baserel, path)
 }
@@ -467,43 +467,32 @@ func doubanIterateForeignScan(node *C.ForeignScanState) *C.TupleTableSlot {
 
 //export doubanEndForeignScan
 func doubanEndForeignScan(node *C.ForeignScanState) {
-	/* Nothing to do for the simple fdw */
 	Unref(unsafe.Pointer(node.fdw_state))
 	node.fdw_state = nil
 }
 
 //export doubanReScanForeignScan
 func doubanReScanForeignScan(node *C.ForeignScanState) {
-	/* Nothing to do for the simple fdw */
 	ereport(ERRCODE_FDW_ERROR, "rescan of foreign scan is not supported yet")
 }
 
 //export doubanExplainForeignScan
 func doubanExplainForeignScan(node *C.ForeignScanState,
 	es *C.ExplainState) {
-	var dbstate *DoubanScanState
 
-	info("Entering doubanExplainForeignScan()...")
-	defer info("Exitting doubanExplainForeignScan()...")
-
-	title := C.CString("Douban API")
+	title := C.CString("Douban Rank")
 	defer C.free(unsafe.Pointer(title))
 
-	dbstate = (*DoubanScanState)(unsafe.Pointer(node.fdw_state))
-	rankName := getRankNameFromForeginTable(dbstate.scanningRel)
-	attr, _ := UrlMap[rankName]
-	url := attr.URL[0:strings.IndexByte(attr.URL, '?')]
-	explainValue := C.CString(fmt.Sprintf("Searching: %s", url))
-	defer C.free(unsafe.Pointer(explainValue))
+	sstate := (*C.ScanState)(unsafe.Pointer(&(node.ss)))
+	rel := (*C.RelationData)(unsafe.Pointer(sstate.ss_currentRelation))
+	rankName := getRankNameFromForeginTable(rel)
 
-	C.ExplainPropertyText(title, explainValue, es)
+	C.ExplainPropertyText(title, C.CString(rankName), es)
 
 	if int(es.costs) > 0 {
-		detailTitle := C.CString("Detail")
-		detailVal := 65535
-		//defer C.free(detailTitle)
+		detailTitle := C.CString("Movie items")
 
-		C.ExplainPropertyLong(detailTitle, C.long(detailVal), es)
+		C.ExplainPropertyLong(detailTitle, C.long(MovieRankingTop250Num), es)
 	}
 }
 
@@ -539,7 +528,6 @@ func checkRankName(rankname *C.char) C.bool {
 func getRankNameFromForeginTable(rel *C.RelationData) string {
 	var reloid C.Oid
 	var table *C.ForeignTable
-	//var lc *C.ListCell
 
 	reloid = rel.rd_id
 	table = C.GetForeignTable(reloid)
