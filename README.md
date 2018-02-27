@@ -1,7 +1,7 @@
 # douban_fdw
-A PostgreSQL's Foreign Data Wrapper (FDW) for retrieving the movie ranking data via the public API of douban.com. This FDW is written mainly in GO(cgo).
+A PostgreSQL's Foreign Data Wrapper (FDW) for retrieving the movie ranking data via the public API of douban.com. This FDW is mainly written in GO(cgo).
 
-This toy FDW was inspired by the following github repository
+This toy FDW was inspired by the github repositories as follows
 
 * [rapidloop/ptgo](https://github.com/rapidloop/ptgo)
 * [umitanuki/twitter_fdw](https://github.com/umitanuki/twitter_fdw)
@@ -76,7 +76,9 @@ This toy FDW was inspired by the following github repository
 
 2. the foreign table defined by douban_fdw can work properly only on the database of which the encoding being **UTF8**, because most of the data retrieved from douban.com are simplified chinese characters (encoded in UTF8)
 
-3. according to the official manual, **the douban's public api can be called only 40 times per-api-per-hour for one ip address** 
+3. according to the official manual, **the douban's public api can only be called within 40 times per-hour from one ip address**, currently the user can only query the foreign table less than 40 time in a hour
+
+4. it only supports the public movie api of "top250"(*/v2/movie/top250*) currently
 
 ## TODO
 
@@ -84,5 +86,6 @@ the following features are on the way
 
 - [ ] the implementation of the rescan routine
 - [ ] a local persistant buffer to solve the times limit issue of the douban API
+- [ ] support the public api for retrieving data of chart "us_box"
 - [ ] server-side encoding convert to support the database of which not being UTF8-encoded
 - [ ] PostgreSQL 9.6+ support
