@@ -370,12 +370,6 @@ func doubanBeginForeignScan(node *C.ForeignScanState,
 	rel = (*C.RelationData)(unsafe.Pointer(sstate.ss_currentRelation))
 
 	rank := getRankNameFromForeginTable(rel)
-	if rank == "" {
-		relationName := (* C.NameData)(unsafe.Pointer(&(((*C.FormData_pg_class)(unsafe.Pointer(rel.rd_rel))).relname)))
-	    tabname := C.GoString(&(relationName.data[0]))
-		ereport(ERRCODE_FDW_INVALID_OPTION_NAME, 
-		    "the \"rank_name\" option not specified while defining the foreign table \"%s\"", tabname)
-	}
 
 	items, err := RetrieveRankingData(rank, 50) //TODO: constant variable 50 should be changed
 	if err != nil {
@@ -473,7 +467,34 @@ func doubanEndForeignScan(node *C.ForeignScanState) {
 
 //export doubanReScanForeignScan
 func doubanReScanForeignScan(node *C.ForeignScanState) {
-	ereport(ERRCODE_FDW_ERROR, "rescan of foreign scan is not supported yet")
+	dbstate, ok := Restore(unsafe.Pointer(node.fdw_state)).(*DoubanScanState)
+	if (!ok) {
+		/*
+		   the long-jump in ereport will directly jump into the Postgres's C-stack, 
+		   I'm not sure if the machanism of "defer" in Go would take effect 
+		 */
+		ereport(ERRCODE_FDW_ERROR, "internal error: type assersion of \"%p\" to \"*DoubanScanState\" failed ", 
+			unsafe.Pointer(node.fdw_state))
+	}
+
+	// reset the current row count
+	if dbstate.resultSet != nil {
+		dbstate.currentRow = 0
+	} else {
+		sstate := (*C.ScanState)(unsafe.Pointer(&(node.ss)))
+		rel := (*C.RelationData)(unsafe.Pointer(sstate.ss_currentRelation))
+	
+		rank := getRankNameFromForeginTable(rel)
+
+		items, err := RetrieveRankingData(rank, 50) //TODO: constant variable 50 should be changed
+		if err != nil {
+			ereport(ERRCODE_FDW_ERROR,
+				"error occurred while retrieving data from douban.com\n  details:%v", err)
+			return // ereport will cause the statement jumped out of the execution.
+		}
+		dbstate.resultSet = items
+		dbstate.currentRow = 0
+	}
 }
 
 //export doubanExplainForeignScan
@@ -500,7 +521,7 @@ func doubanExplainForeignScan(node *C.ForeignScanState,
 func doubanAnalyzeForeignTable(relation *C.RelationData,
 	aquireSampleRowsFunc *C.AcquireSampleRowsFunc, totalpages *C.uint) C.bool {
 	*totalpages = 1
-	return C.bool(1)
+	return C.bool(0)    /* the foreign data cannot be sampled since it's a web api */
 }
 
 //export checkOptionName
@@ -545,7 +566,13 @@ func getRankNameFromForeginTable(rel *C.RelationData) string {
 		}
 	}
 
-	return ""
+	/* "rank_name" option not found */
+	relationName := (* C.NameData)(unsafe.Pointer(&(((*C.FormData_pg_class)(unsafe.Pointer(rel.rd_rel))).relname)))
+	tabname := C.GoString(&(relationName.data[0]))
+	ereport(ERRCODE_FDW_INVALID_OPTION_NAME, 
+		"the \"rank_name\" option not specified while defining the foreign table \"%s\"", tabname)
+
+	return ""    /* avoid the compile error */
 }
 
 func main() {}
