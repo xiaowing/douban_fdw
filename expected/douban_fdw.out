@@ -1,0 +1,44 @@
+CREATE EXTENSION douban_fdw;
+CREATE SERVER doubansv FOREIGN DATA WRAPPER douban_fdw;
+CREATE FOREIGN TABLE top250(rating REAL, title TEXT, genres VARCHAR(64), casts VARCHAR(256), collectcount INTEGER, originname TEXT, directors VARCHAR(256), year VARCHAR(32)) SERVER doubansv OPTIONS(rank_name 'top250');
+SELECT count(1) FROM top250;
+ count 
+-------
+   250
+(1 row)
+
+SELECT rating, title, CAST(year AS INT) FROM top250 WHERE rating > 9.2 ORDER BY title DESC;
+ rating |     title      | year 
+--------+----------------+------
+    9.5 | 霸王别姬       | 1993
+    9.4 | 阿甘正传       | 1994
+    9.4 | 这个杀手不太冷 | 1994
+    9.4 | 辛德勒的名单   | 1993
+    9.6 | 肖申克的救赎   | 1994
+    9.5 | 美丽人生       | 1997
+    9.3 | 盗梦空间       | 2010
+    9.3 | 海豚湾         | 2009
+    9.3 | 机器人总动员   | 2008
+    9.6 | 控方证人       | 1957
+    9.4 | 十二怒汉       | 1957
+(11 rows)
+
+SELECT rating, title, CAST(year AS INT) FROM top250 WHERE CAST(year AS INT) = 1994 ORDER BY title;
+ rating |     title      | year 
+--------+----------------+------
+    8.6 | 东邪西毒       | 1994
+    8.8 | 低俗小说       | 1994
+    9.1 | 活着           | 1994
+    8.7 | 燃情岁月       | 1994
+    8.9 | 狮子王         | 1994
+    9.6 | 肖申克的救赎   | 1994
+    9.4 | 这个杀手不太冷 | 1994
+    8.7 | 重庆森林       | 1994
+    8.8 | 阳光灿烂的日子 | 1994
+    9.4 | 阿甘正传       | 1994
+    9.1 | 饮食男女       | 1994
+(11 rows)
+
+DROP FOREIGN TABLE top250;
+DROP SERVER doubansv;
+DROP EXTENSION douban_fdw CASCADE;
