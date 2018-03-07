@@ -40,7 +40,7 @@ This toy FDW was inspired by the github repositories as follows
 
 ### how to use the FDW
 
-0. make sure that the postgresql server where the fdw was installed to is able to access *douban.com* on internet
+0. make sure that the postgresql server where the fdw was installed to is able to access *[douban.com](https://www.douban.com/)* on internet
 
 1. first of all, create a foreign server like
 
@@ -48,13 +48,17 @@ This toy FDW was inspired by the github repositories as follows
     CREATE SERVER {servername} FOREIGN DATA WRAPPER douban_fdw;
     ````
 
+    you can see [here](https://www.postgresql.org/docs/9.5/static/sql-createserver.html) for more details about the syntax of `CREATE SERVER`
+
 2. define a foreign table with the foreign server above
 
     ````sql
     CREATE FOREIGN TABLE {tablename} (rating {data type}...) SERVER {servername} OPTIONS (rank_name 'top250');
     ````
 
-    *you can name the foreign table whatever you wanted to, but the column name should be as follows. if you defined an column name out of the valid range, it would cause an error when you queried the table*
+    you can see [here](https://www.postgresql.org/docs/9.5/static/sql-createforeigntable.html) for more details about the syntax of `CREATE FOREIGN TABLE`
+
+    *NOTE: you can name the foreign table whatever you wanted to, but the column name should be as follows. if you defined an column name out of the valid range, it would cause an error when you queried the table*
 
     *the column names which can be identified:*
 
@@ -87,6 +91,7 @@ This toy FDW was inspired by the github repositories as follows
 the following features are on the way
 
 - [x] the implementation of the rescan routine
+- [ ] support of the `IMPORT FOREIGN SCHEMA` statement
 - [ ] a local persistant buffer to solve the times limit issue of the douban API
 - [ ] support the public api for retrieving data of chart "us_box"
 - [ ] server-side encoding convert to support the database of which not being UTF8-encoded
