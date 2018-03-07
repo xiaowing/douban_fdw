@@ -33,4 +33,5 @@ libdbango.h
 
 # install check result
 regression.diffs
+regression.out
 results/

@@ -40,6 +40,8 @@ This toy FDW was inspired by the github repositories as follows
 
 ### how to use the FDW
 
+0. make sure that the postgresql server where the fdw was installed to is able to access *douban.com* on internet
+
 1. first of all, create a foreign server like
 
     ````sql
@@ -84,7 +86,7 @@ This toy FDW was inspired by the github repositories as follows
 
 the following features are on the way
 
-- [ ] the implementation of the rescan routine
+- [x] the implementation of the rescan routine
 - [ ] a local persistant buffer to solve the times limit issue of the douban API
 - [ ] support the public api for retrieving data of chart "us_box"
 - [ ] server-side encoding convert to support the database of which not being UTF8-encoded

@@ -210,15 +210,11 @@ func info(msgFormat string, args ...interface{}) {
 //export doubanGetForeignRelSize
 func doubanGetForeignRelSize(root *C.PlannerInfo,
 	baserel *C.RelOptInfo, foreigntableid C.Oid) {
-	var retrievedAttrs, referredAttrs *C.Bitmapset
+	var referredAttrs *C.Bitmapset
 
 	// Collect all the attributes needed for joins or final output.
 	targetlist := (*C.Node)(unsafe.Pointer(baserel.reltargetlist)) // TODO: member field of 'RelOptInfo' changed in 9.6
-	C.pull_varattnos(targetlist, baserel.relid, (**C.Bitmapset)(unsafe.Pointer(&retrievedAttrs)))
-
-	// copy the retrievedAttrs for the column name check
-	// retrievedAttrs would be passed on 
-	referredAttrs = C.bms_copy(retrievedAttrs)
+	C.pull_varattnos(targetlist, baserel.relid, (**C.Bitmapset)(unsafe.Pointer(&referredAttrs)))
 
 	// Add all the attributes used by restriction clauses.
 	restrictNum := int(C.list_length(baserel.baserestrictinfo))
@@ -229,9 +225,8 @@ func doubanGetForeignRelSize(root *C.PlannerInfo,
 	}
 	
 	// check if the name of the referred attrs are valid
-	attributesRetrieved := referredFieldsValidator(foreigntableid, referredAttrs, retrievedAttrs)
+	attributesRetrieved := referredFieldsValidator(foreigntableid, referredAttrs)
 	C.bms_free(referredAttrs)
-	C.bms_free(retrievedAttrs)
 
 	baserel.fdw_private = Save(attributesRetrieved)
 	baserel.rows = C.double(MovieRankingTop250Num)
@@ -250,7 +245,7 @@ func doubanGetForeignRelSize(root *C.PlannerInfo,
 // Note:
 //   if something goes wrong during the process of validation, it will directly
 //   throw an error and long-jump just as the most functions in PostgreSQL did.
-func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset, targetFields *C.Bitmapset) []*TargetColumnMeta {
+func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset) []*TargetColumnMeta {
 	var relation C.Relation
 	var tupdesc C.TupleDesc
 
@@ -302,17 +297,14 @@ func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset, 
 			ereport(ERRCODE_FDW_COLUMN_NAME_NOT_FOUND, "invalid column name \"%s\"", attrName)
 		}
 
-		// if the current field also hits with the targetFields,
 		// build the TargetColumnMeta for retval
-		if C.bms_is_member(C.int(i-(-8)), targetFields) == C.bool(1) {
-			meta := new(TargetColumnMeta)
-			meta.attrNum = i
-			meta.attrName = attrName
-			meta.attrType = attr.atttypid
-			meta.attrTypmod = attr.atttypmod
+		meta := new(TargetColumnMeta)
+		meta.attrNum = i
+		meta.attrName = attrName
+		meta.attrType = attr.atttypid
+		meta.attrTypmod = attr.atttypmod
 
-			retval = append(retval, meta)
-		}
+		retval = append(retval, meta)
 	}
 
 	return retval
