@@ -29,15 +29,15 @@ douban_fdw_handler(PG_FUNCTION_ARGS)
 {
     FdwRoutine *fdwroutine = makeNode(FdwRoutine);
     
-    fdwroutine->GetForeignRelSize = doubanGetForeignRelSize_cgo;
-    fdwroutine->GetForeignPaths = doubanGetForeignPaths_cgo;
-    fdwroutine->GetForeignPlan = doubanGetForeignPlan_cgo;
-    fdwroutine->ExplainForeignScan = doubanExplainForeignScan_cgo;
-    fdwroutine->BeginForeignScan = doubanBeginForeignScan_cgo;
-    fdwroutine->IterateForeignScan = doubanIterateForeignScan_cgo;
-    fdwroutine->ReScanForeignScan = doubanReScanForeignScan_cgo;
-    fdwroutine->EndForeignScan = doubanEndForeignScan_cgo;
-    fdwroutine->AnalyzeForeignTable = doubanAnalyzeForeignTable_cgo;
+    fdwroutine->GetForeignRelSize = doubanGetForeignRelSize;
+    fdwroutine->GetForeignPaths = doubanGetForeignPaths;
+    fdwroutine->GetForeignPlan = doubanGetForeignPlan;
+    fdwroutine->ExplainForeignScan = doubanExplainForeignScan;
+    fdwroutine->BeginForeignScan = doubanBeginForeignScan;
+    fdwroutine->IterateForeignScan = doubanIterateForeignScan;
+    fdwroutine->ReScanForeignScan = doubanReScanForeignScan;
+    fdwroutine->EndForeignScan = doubanEndForeignScan;
+    fdwroutine->AnalyzeForeignTable = doubanAnalyzeForeignTable;
 
     PG_RETURN_POINTER(fdwroutine);
 }

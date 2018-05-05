@@ -37,39 +37,6 @@ static void InfoReport(char *error_msg)
 {
 	ereport(INFO, (errmsg(error_msg)));
 }
-
-// Forward declarations of gateway functions
-void doubanGetForeignRelSize_cgo(PlannerInfo *root,
-                       RelOptInfo *baserel,
-					   Oid foreigntableid);
-
-void doubanGetForeignPaths_cgo(PlannerInfo *root,
-                       RelOptInfo *baserel,
-					   Oid foreigntableid);
-
-ForeignScan *doubanGetForeignPlan_cgo(PlannerInfo *root,
-                    RelOptInfo *baserel,
-                    Oid foreigntableid,
-                    ForeignPath *best_path,
-                    List *tlist,
-                    List *scan_clauses,
-					Plan *outer_plan);
-
-void doubanExplainForeignScan_cgo(ForeignScanState *node,
-						ExplainState *es);
-
-void doubanBeginForeignScan_cgo(ForeignScanState *node,
-					  int eflags);
-
-TupleTableSlot *doubanIterateForeignScan_cgo(ForeignScanState *node);
-
-void doubanReScanForeignScan_cgo(ForeignScanState *node);
-
-void doubanEndForeignScan_cgo(ForeignScanState *node);
-
-bool doubanAnalyzeForeignTable_cgo(Relation relation,
-                         AcquireSampleRowsFunc *func,
-						 BlockNumber *totalpages);
 */
 import "C"
 import (
