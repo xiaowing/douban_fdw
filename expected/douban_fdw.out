@@ -13,7 +13,7 @@ SELECT rating, title FROM top250 WHERE CAST(year AS INT) = 1994 ORDER BY rating 
     9.6 | 肖申克的救赎
     9.4 | 这个杀手不太冷
     9.4 | 阿甘正传
-    9.1 | 活着
+    9.2 | 活着
     9.1 | 饮食男女
     8.9 | 狮子王
     8.8 | 低俗小说
@@ -24,16 +24,16 @@ SELECT rating, title FROM top250 WHERE CAST(year AS INT) = 1994 ORDER BY rating 
 (11 rows)
 
 SELECT rating, title, year FROM top250 WHERE rating NOT IN (SELECT rating FROM top250 WHERE year::int > 2000) ORDER BY rating DESC;
- rating |     title      | year 
---------+----------------+------
-    9.6 | 肖申克的救赎   | 1994
-    9.6 | 控方证人       | 1957
-    9.5 | 美丽人生       | 1997
-    9.5 | 霸王别姬       | 1993
-    9.4 | 这个杀手不太冷 | 1994
-    9.4 | 阿甘正传       | 1994
-    9.4 | 辛德勒的名单   | 1993
-    9.4 | 十二怒汉       | 1957
+     title      | year 
+----------------+------
+ 美丽人生       | 1997
+ 肖申克的救赎   | 1994
+ 这个杀手不太冷 | 1994
+ 阿甘正传       | 1994
+ 辛德勒的名单   | 1993
+ 霸王别姬       | 1993
+ 十二怒汉       | 1957
+ 控方证人       | 1957
 (8 rows)
 
 EXPLAIN SELECT rating, title, year FROM top250 WHERE rating NOT IN (SELECT rating FROM top250 WHERE year::int > 2000) ORDER BY rating DESC;

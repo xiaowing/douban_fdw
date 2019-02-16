@@ -95,4 +95,4 @@ the following features are on the way
 - [ ] a local persistant buffer to solve the times limit issue of the douban API
 - [ ] support the public api for retrieving data of chart "us_box"
 - [ ] server-side encoding convert to support the database of which not being UTF8-encoded
-- [ ] PostgreSQL 9.6+ support
+- [x] PostgreSQL 9.6+ support
