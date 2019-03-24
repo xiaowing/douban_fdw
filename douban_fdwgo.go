@@ -73,6 +73,16 @@ static Form_pg_attribute getTupleDescAttr(TupleDesc tupdesc, int i)
     return TupleDescAttr(tupdesc, i);
 #endif
 }
+
+static char getStandardizedBool(bool boolVal)
+{
+	return boolVal ? 1 : 0;
+}
+
+static bool convToBool(char chVal)
+{
+	return (chVal == 0) ? (bool)0 : (bool)1;
+}
 */
 import "C"
 import (
@@ -274,12 +284,12 @@ func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset) 
 
 		attrFound = false
 		// Ignore dropped attributes.
-		if attr.attisdropped == C.bool(1) {
+		if C.getStandardizedBool(attr.attisdropped) > 0 {
 			continue
 		}
 
 		// the current field not hit with the referredFields
-		if C.bms_is_member(C.int(i-(-8)), referredFields) == C.bool(0) {
+		if C.getStandardizedBool(C.bms_is_member(C.int(i-(-8)), referredFields)) == 0 {
 			continue
 		}
 
@@ -339,7 +349,7 @@ func doubanGetForeignPlan(root *C.PlannerInfo,
 		(*C.List)(unsafe.Pointer(C.lcons(unsafe.Pointer(baserel.fdw_private), (*C.List)(nil))))
 
 	newScanClauses :=
-		(*C.List)(unsafe.Pointer(C.extract_actual_clauses(scanClauses, C.bool(0))))
+		(*C.List)(unsafe.Pointer(C.extract_actual_clauses(scanClauses, C.convToBool(0))))
 
 	result := (*C.ForeignScan)(unsafe.Pointer(C.make_foreignscan(tlist, newScanClauses, baserel.relid,
 		(*C.List)(nil), scan_private,
@@ -443,7 +453,7 @@ func doubanIterateForeignScan(node *C.ForeignScanState) *C.TupleTableSlot {
 	datumsSlice := (*[1 << 30]C.Datum)(unsafe.Pointer(slot.tts_values))[:natts:natts]
 	isnullsSlice := (*[1 << 30]C.bool)(unsafe.Pointer(slot.tts_isnull))[:natts:natts]
 	for _, val := range dbstate.attrsRetrieved {
-		isnullsSlice[val.attrNum-1] = C.bool(0)
+		isnullsSlice[val.attrNum-1] = C.convToBool(0)
 		datumsSlice[val.attrNum-1] = val.convert2Datum(&(dbstate.resultSet[dbstate.currentRow]))
 	}
 	C.ExecStoreVirtualTuple(slot)
@@ -503,7 +513,7 @@ func doubanExplainForeignScan(node *C.ForeignScanState,
 
 	C.ExplainPropertyText(title, C.CString(rankName), es)
 
-	if int(es.costs) > 0 {
+	if C.getStandardizedBool(es.costs) > 0 {
 		detailTitle := C.CString("Movie items")
 
 		C.explainPropertyInteger(detailTitle, C.long(MovieRankingTop250Num), es)
@@ -514,7 +524,7 @@ func doubanExplainForeignScan(node *C.ForeignScanState,
 func doubanAnalyzeForeignTable(relation *C.RelationData,
 	aquireSampleRowsFunc *C.AcquireSampleRowsFunc, totalpages *C.uint) C.bool {
 	*totalpages = 1
-	return C.bool(0) /* the foreign data cannot be sampled since it's a web api */
+	return C.convToBool(0) /* the foreign data cannot be sampled since it's a web api */
 }
 
 //export checkOptionName
@@ -534,9 +544,9 @@ func checkRankName(rankname *C.char) C.bool {
 	rank := strings.ToLower(C.GoString(rankname))
 
 	if _, ok := UrlMap[rank]; ok {
-		return C.bool(1)
+		return C.convToBool(1)
 	}
-	return C.bool(0)
+	return C.convToBool(0)
 }
 
 func getRankNameFromForeginTable(rel *C.RelationData) string {
