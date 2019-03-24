@@ -64,6 +64,15 @@ static void pullVarattnosTargetList(RelOptInfo *baserel, Bitmapset **varattnos)
     pull_varattnos((Node *) baserel->reltargetlist, baserel->relid, varattnos);
 #endif
 }
+
+static Form_pg_attribute getTupleDescAttr(TupleDesc tupdesc, int i)
+{
+#if PG_VERSION_NUM < 110000
+	return ((tupdesc)->attrs[(i)]);
+#else
+    return TupleDescAttr(tupdesc, i);
+#endif
+}
 */
 import "C"
 import (
@@ -257,10 +266,11 @@ func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset) 
 	movieItemType := reflect.TypeOf(tempMovieItem) /* a struct-type is necessary for calling the NumField() method */
 
 	attrFound := false
-	attrslice := (*[1 << 30]C.Form_pg_attribute)(unsafe.Pointer(tupdesc.attrs))[:nattrs:nattrs]
+	//attrslice := (*[1 << 30]C.Form_pg_attribute)(unsafe.Pointer(tupdesc.attrs))[:nattrs:nattrs]
 
 	for i := 1; i <= nattrs; i++ {
-		attr := attrslice[i-1]
+		//attr := attrslice[i-1]
+		attr := (C.Form_pg_attribute)((unsafe.Pointer)(C.getTupleDescAttr(tupdesc, C.int(i-1))))
 
 		attrFound = false
 		// Ignore dropped attributes.
