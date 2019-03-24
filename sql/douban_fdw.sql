@@ -4,7 +4,7 @@ CREATE FOREIGN TABLE top250(rating REAL, title TEXT, genres VARCHAR(64), casts V
 
 SELECT count(1) FROM top250;
 
-SELECT rating, title FROM top250 WHERE CAST(year AS INT) = 1994 ORDER BY rating DESC, title;
+SELECT originname, title FROM top250 WHERE CAST(year AS INT) = 1994 ORDER BY rating DESC, title;
 
 SELECT title, year FROM top250 WHERE rating NOT IN (SELECT rating FROM top250 WHERE year::int > 2000) ORDER BY year DESC, title;
 

@@ -7,23 +7,23 @@ SELECT count(1) FROM top250;
    250
 (1 row)
 
-SELECT rating, title FROM top250 WHERE CAST(year AS INT) = 1994 ORDER BY rating DESC, title;
- rating |     title      
---------+----------------
-    9.6 | 肖申克的救赎
-    9.4 | 这个杀手不太冷
-    9.4 | 阿甘正传
-    9.2 | 活着
-    9.1 | 饮食男女
-    8.9 | 狮子王
-    8.8 | 低俗小说
-    8.8 | 阳光灿烂的日子
-    8.7 | 燃情岁月
-    8.7 | 重庆森林
-    8.6 | 东邪西毒
+SELECT originname, title FROM top250 WHERE CAST(year AS INT) = 1994 ORDER BY rating DESC, title;
+        originname        |     title      
+--------------------------+----------------
+ The Shawshank Redemption | 肖申克的救赎
+ Léon                     | 这个杀手不太冷
+ Forrest Gump             | 阿甘正传
+ 活着                     | 活着
+ 飲食男女                 | 饮食男女
+ The Lion King            | 狮子王
+ Pulp Fiction             | 低俗小说
+ Legends of the Fall      | 燃情岁月
+ 阳光灿烂的日子           | 阳光灿烂的日子
+ 重慶森林                 | 重庆森林
+ 東邪西毒                 | 东邪西毒
 (11 rows)
 
-SELECT rating, title, year FROM top250 WHERE rating NOT IN (SELECT rating FROM top250 WHERE year::int > 2000) ORDER BY rating DESC;
+SELECT title, year FROM top250 WHERE rating NOT IN (SELECT rating FROM top250 WHERE year::int > 2000) ORDER BY rating DESC;
      title      | year 
 ----------------+------
  美丽人生       | 1997
