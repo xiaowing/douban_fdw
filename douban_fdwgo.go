@@ -237,12 +237,10 @@ func doubanGetForeignRelSize(root *C.PlannerInfo,
 	}
 
 	// check if the name of the referred attrs are valid
-	attributesRetrieved := referredFieldsValidator(foreigntableid, referredAttrs)
+	attributesRetrieved := referredFieldsValidator(foreigntableid, baserel, referredAttrs)
 	C.bms_free(referredAttrs)
 
 	baserel.fdw_private = Save(attributesRetrieved)
-	baserel.rows = C.double(MovieRankingTop250Num)
-	//TODO: width
 }
 
 // check whether the columns referred in a query are valid or not.
@@ -257,7 +255,7 @@ func doubanGetForeignRelSize(root *C.PlannerInfo,
 // Note:
 //   if something goes wrong during the process of validation, it will directly
 //   throw an error and long-jump just as the most functions in PostgreSQL did.
-func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset) []*TargetColumnMeta {
+func referredFieldsValidator(foreigntableId C.Oid, baserel *C.RelOptInfo, referredFields *C.Bitmapset) []*TargetColumnMeta {
 	var relation C.Relation
 	var tupdesc C.TupleDesc
 
@@ -320,6 +318,11 @@ func referredFieldsValidator(foreigntableId C.Oid, referredFields *C.Bitmapset) 
 		retval = append(retval, meta)
 	}
 
+	// set the baserel's size
+	rank := getRankNameFromForeginTable(relation)
+	baserel.rows = C.double(UrlMap[rank].Total())
+	//TODO: width
+
 	return retval
 }
 
@@ -381,9 +384,9 @@ func doubanBeginForeignScan(node *C.ForeignScanState,
 		return // ereport will cause the statement jumped out of the execution.
 	}
 
-	if len(items) < MovieRankingTop250Num {
+	if len(items) < UrlMap[rank].Total() {
 		//TODO: change info into warning
-		info("%d items expected from Douban.com, but only %d returned actually", MovieRankingTop250Num, len(items))
+		info("%d items expected from Douban.com, but only %d returned actually", UrlMap[rank].Total(), len(items))
 	}
 
 	// get the fdw's private field from the ForeignScan
@@ -413,10 +416,14 @@ func doubanBeginForeignScan(node *C.ForeignScanState,
 
 //export doubanIterateForeignScan
 func doubanIterateForeignScan(node *C.ForeignScanState) *C.TupleTableSlot {
-	iterateMax := MovieRankingTop250Num
 	sstate := (*C.ScanState)(unsafe.Pointer(&(node.ss)))
 	slot := (*C.TupleTableSlot)(unsafe.Pointer(sstate.ss_ScanTupleSlot))
 	tupDesc := (C.TupleDesc)(unsafe.Pointer(slot.tts_tupleDescriptor))
+	
+	rel := (*C.RelationData)(unsafe.Pointer(sstate.ss_currentRelation))
+	rank := getRankNameFromForeginTable(rel)
+	iterateMax := UrlMap[rank].Total()
+
 	dbstate, ok := Restore(unsafe.Pointer(node.fdw_state)).(*DoubanScanState)
 	if !ok {
 		/*
@@ -516,7 +523,7 @@ func doubanExplainForeignScan(node *C.ForeignScanState,
 	if C.getStandardizedBool(es.costs) > 0 {
 		detailTitle := C.CString("Movie items")
 
-		C.explainPropertyInteger(detailTitle, C.long(MovieRankingTop250Num), es)
+		C.explainPropertyInteger(detailTitle, C.long(UrlMap[rankName].Total()), es)
 	}
 }
 

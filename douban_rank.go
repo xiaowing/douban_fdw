@@ -6,20 +6,32 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
+	"strings"
 )
 
 const (
-	MovieRankingTop250    = "top250" // ranking table "Top250"
-	MovieRankingTop250Num = 250      // Number of movie items in the Top250 rank.
+	MovieRankingTop250    = "top250" 		// ranking table "Top250"
+	UsboxRankingTop10     = "us_box" 		// ranking table "us_box"
+	MovieRankingTop250Num = 250      		// Number of movie items in the Top250 rank.
+	UsboxRankingTop10Num  = 10             	// Number of movie items in the us_box rank.
 )
 
 type RankAttr struct {
 	URL   string
 	total int
+	resultType reflect.Type
+}
+
+func (attr RankAttr) Total() int {
+	return attr.total
 }
 
 var UrlMap = map[string]RankAttr{
-	MovieRankingTop250: {"http://api.douban.com/v2/movie/top250?count=%d&start=%d", MovieRankingTop250Num},
+	MovieRankingTop250: 
+		{"http://api.douban.com/v2/movie/top250?count=%d&start=%d", MovieRankingTop250Num, reflect.TypeOf((*MovieRanking250)(nil)).Elem()},
+	UsboxRankingTop10:	
+		{"http://api.douban.com/v2/movie/us_box?count=%d&start=%d", UsboxRankingTop10Num, reflect.TypeOf((*UsboxRanking)(nil)).Elem()},
 }
 
 type Artist struct {
@@ -110,6 +122,31 @@ func getStarrings(artists []Artist) string {
 	}
 }
 
+type UsboxItem struct {
+	Box     int       `json:"box"`
+	Isnew   bool      `json:"new"`
+	Rank    int       `json:"rank"`
+	Subject MovieItem `json:"subject"`
+}
+
+// The box rank of USA
+type UsboxRanking struct {
+	RankTitle string      `json:"title"`
+	RankDate  string      `json:"date"`
+	Subjects  []UsboxItem `json:"subjects"`
+}
+
+func (usboxRanking *UsboxRanking) extractMovieItems() ([]MovieItem) {
+	result := make([]MovieItem, 0, len(usboxRanking.Subjects))
+
+	for _, v := range usboxRanking.Subjects {
+		result = append(result, v.Subject)
+	}
+
+	return result
+}
+
+// The Douban movie250
 type MovieRanking250 struct {
 	Count    int         `json:"count"`
 	Start    int         `json:"start"`
@@ -153,7 +190,7 @@ func RetrieveRankingData(rankName string, length int) ([]MovieItem, error) {
 	for i := 0; i < attr.total; i += length {
 		go func(offset int, length int) {
 			client := &http.Client{}
-			ranking := new(MovieRanking250)
+			ranking := reflect.New(attr.resultType)
 
 			apiURL := fmt.Sprintf(attr.URL, length, offset)
 			fmt.Printf("[DEBUG]Requesting %s\n", apiURL)
@@ -180,12 +217,28 @@ func RetrieveRankingData(rankName string, length int) ([]MovieItem, error) {
 					errorChannel <- readErr
 					return
 				}
-				unmarshalErr := json.Unmarshal(bodyContent, ranking)
+				unmarshalErr := json.Unmarshal(bodyContent, ranking.Interface())
 				if unmarshalErr != nil {
 					errorChannel <- unmarshalErr
 					return
 				}
-				resultChannel <- ranking.Subjects
+
+				if strings.Contains(attr.resultType.Name(), "MovieRanking250") {
+					if r, ok := ranking.Interface().(*MovieRanking250); ok {
+						resultChannel <- r.Subjects
+					} else {
+						errorChannel <- fmt.Errorf("Convertion to MovieRanking250 failed")
+					}
+				} else if (strings.Contains(attr.resultType.Name(), "UsboxRanking")) {
+					if r, ok := ranking.Interface().(*UsboxRanking); ok {
+						resultChannel <- r.extractMovieItems()
+					} else {
+						errorChannel <- fmt.Errorf("Convertion to UsboxRanking failed")
+					}
+				} else {
+					errorChannel <- fmt.Errorf("Unknown resultType: %s", attr.resultType.Name())
+				}
+				//resultChannel <- ranking.Subjects
 				return
 			}
 			errorChannel <- fmt.Errorf("Bad status code: %d", resp.StatusCode)

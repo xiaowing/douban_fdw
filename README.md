@@ -93,6 +93,6 @@ the following features are on the way
 - [x] the implementation of the rescan routine
 - [ ] support of the `IMPORT FOREIGN SCHEMA` statement
 - [ ] a local persistant buffer to solve the times limit issue of the douban API
-- [ ] support the public api for retrieving data of chart "us_box"
+- [x] support the public api for retrieving data of chart "us_box"
 - [ ] server-side encoding convert to support the database of which not being UTF8-encoded
 - [x] PostgreSQL 9.6+ support
